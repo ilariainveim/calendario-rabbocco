@@ -424,6 +424,37 @@
     th { background: #f3f4f6; }
     .small { color: var(--muted); font-size: 13px; }
 
+    body.view-only .editor,
+    body.view-only .quick-assignment,
+    body.view-only #exportPanel,
+    body.view-only #datePopover,
+    body.view-only .edit-only {
+      display: none !important;
+    }
+
+    body.view-only .day {
+      cursor: default;
+    }
+
+    body.view-only .day:hover {
+      outline: none;
+    }
+
+    body.view-only .viewer-notice {
+      display: block;
+    }
+
+    .viewer-notice {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f3f4f6;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
     .grid2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -673,11 +704,12 @@
         <select id="yearSelect" onchange="render()"></select>
         <button type="button" onclick="changeMonth(1)">Mese successivo →</button>
         <button type="button" class="secondary" onclick="preparePrint()">Stampa / salva PDF</button>
-        <button type="button" class="secondary" onclick="showExportPanel()">Esporta dati</button>
-        <button type="button" class="secondary" onclick="document.getElementById('importFile').click()">Importa dati</button>
+        <button type="button" class="secondary edit-only" onclick="showExportPanel()">Esporta dati</button>
+        <button type="button" class="secondary edit-only" onclick="document.getElementById('importFile').click()">Importa dati</button>
         <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)" />
-        <button type="button" class="secondary" onclick="loadBasePlan()">Carica piano base</button>
+        <button type="button" class="secondary edit-only" onclick="loadBasePlan()">Carica piano base</button>
       </div>
+      <div class="viewer-notice">Modalità solo visualizzazione: le modifiche sono disattivate.</div>
 
       <div class="legend">
         <span class="tag"><span class="dot" style="background:var(--ilaria)"></span>Ilaria</span>
@@ -816,6 +848,18 @@
   <div id="datePopover" class="date-popover" aria-hidden="true"></div>
 
   <script>
+    const EDIT_PAGE_NAME = "gestione-rabbocco-9f47";
+    const pathName = window.location.pathname || "";
+
+    // Modalità consigliata:
+    // - calendario.html = solo visualizzazione
+    // - gestione-rabbocco-9f47.html = modificabile
+    // Non esiste più una scorciatoia tipo ?edit=...: la modifica si attiva solo dalla pagina con nome riservato.
+    const isEditMode = pathName.includes(EDIT_PAGE_NAME);
+    const isViewOnly = !isEditMode;
+
+    if (isViewOnly) document.body.classList.add("view-only");
+
     const people = ["Ilaria", "Massimo", "Franco", "Roberto"];
     const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
     const weekdayNames = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
@@ -1940,9 +1984,11 @@
         if (holidayType === "national") div.classList.add("holiday-national");
         if (holidayType === "cantonal") div.classList.add("holiday-cantonal");
 
-        div.onclick = () => {
-          setAssignmentFields(key, assigned || "", { scrollToEditor: true });
-        };
+        if (!isViewOnly) {
+          div.onclick = () => {
+            setAssignmentFields(key, assigned || "", { scrollToEditor: true });
+          };
+        }
 
         let infoHtml = "";
         dayAbsences.forEach(a => {
@@ -2034,6 +2080,10 @@
     }
 
     function saveAssignmentFromValues(date, person) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       if (!date || !person) {
         alert("Seleziona data e persona.");
         return;
@@ -2071,6 +2121,10 @@
     }
 
     function removeAssignmentByDate(date) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       if (!date) {
         alert("Seleziona una data.");
         return;
@@ -2119,6 +2173,10 @@
     }
 
     function saveExtraAbsence() {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       const person = document.getElementById("absencePerson").value;
       const start = normalizeDateField("absenceStart");
       const end = normalizeDateField("absenceEnd");
@@ -2140,6 +2198,10 @@
     }
 
     function clearExtraAbsences() {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       if (!confirm("Vuoi cancellare tutte le assenze extra inserite manualmente?")) return;
       extraAbsences = [];
       saveExtraAbsences();
@@ -2148,6 +2210,10 @@
     }
 
     function deleteBaseAbsence(index) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       const absence = baseAbsences[index];
       if (!absence) return;
       const label = `${absence.person}: ${absence.reason || "Assenza"} dal ${formatDateCH(absence.start)} al ${formatDateCH(absence.end)}`;
@@ -2161,6 +2227,10 @@ ${label}`)) return;
     }
 
     function restoreBaseAbsences() {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       if (!confirm("Vuoi ripristinare tutte le ferie base eliminate?")) return;
       deletedBaseAbsences = [];
       saveDeletedBaseAbsences();
@@ -2207,6 +2277,10 @@ ${label}`)) return;
     }
 
     function deleteExtraAbsence(index) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
       const absence = extraAbsences[index];
       if (!absence) return;
       const label = `${absence.person}: ${absence.reason || "Assenza"} dal ${formatDateCH(absence.start)} al ${formatDateCH(absence.end)}`;
@@ -2364,6 +2438,10 @@ ${label}`)) return;
     }
 
     function importData(event) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: importazione non consentita.", true);
+        return;
+      }
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
@@ -2447,6 +2525,7 @@ ${label}`)) return;
       console.assert(typeof selectAbsenceRangeDate === "function", "selectAbsenceRangeDate deve esistere");
       console.assert(typeof renderCritical === "function", "renderCritical deve esistere e raggruppare i giorni critici per periodo");
       console.assert(document.getElementById("monthlySummaryTable"), "La tabella del fatturato mese selezionato deve esistere");
+      console.assert(typeof isViewOnly === "boolean", "isViewOnly deve indicare se la pagina è in sola visualizzazione");
       console.assert(document.createElement("span").classList !== undefined, "classList deve essere disponibile per distinguere pill e rabbocco");
       console.assert(typeof document.createElement("div").style.flexDirection !== "undefined", "Flexbox deve essere disponibile per ancorare il rabbocco in basso");
       const orderingTestAbsences = [{ person: "Ilaria", reason: "Ferie" }];
@@ -2466,7 +2545,9 @@ ${label}`)) return;
     }
 
     initSelectors();
-    runBasicTests();
+    if (new URLSearchParams(window.location.search).get("debug") === "1") {
+      runBasicTests();
+    }
     render();
   </script>
 </body>
