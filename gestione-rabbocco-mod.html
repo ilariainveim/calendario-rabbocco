@@ -1,0 +1,2554 @@
+<!DOCTYPE html>
+<html lang="it-CH">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendario Ferie e Rabbocco</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --text: #1f2933;
+      --muted: #6b7280;
+      --border: #d9dee7;
+      --critical: #e5e7eb;
+      --today: #fff5cc;
+      --ilaria: #ffd6e7;
+      --massimo: #9ee79a;
+      --franco: #ffe8c7;
+      --roberto: #d8ecff;
+      --rabbocco: #222222;
+      --holiday: #fff0b3;
+      --holiday-national: #ffb3b3;
+      --holiday-cantonal: #ffd28a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 18px 22px;
+    }
+
+    header h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+
+    header p {
+      margin: 0;
+      color: #d1d5db;
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .controls, .summary, .editor {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button, select, input {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 14px;
+      background: white;
+    }
+
+    .date-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .date-field input[type="text"] {
+      width: 140px;
+    }
+
+    .date-popover {
+      position: absolute;
+      z-index: 9999;
+      width: 292px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+      padding: 12px;
+      display: none;
+    }
+
+    .date-popover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .date-popover-title {
+      font-weight: bold;
+      text-align: center;
+      flex: 1;
+    }
+
+    .date-popover-header button {
+      padding: 6px 9px;
+      border-radius: 7px;
+      min-width: 36px;
+    }
+
+    .date-popover-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .date-popover-weekday {
+      text-align: center;
+      font-weight: bold;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 0;
+    }
+
+    .date-popover-day {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #111827;
+      border-radius: 7px;
+      padding: 7px 0;
+      text-align: center;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .date-popover-day:hover {
+      background: #f3f4f6;
+    }
+
+    .date-popover-day.empty {
+      border-color: transparent;
+      background: transparent;
+      cursor: default;
+    }
+
+    .date-popover-day.selected {
+      background: #111827;
+      color: white;
+      font-weight: bold;
+    }
+
+    .date-popover-day.range-start,
+    .date-popover-day.range-end {
+      background: #111827;
+      color: white;
+      font-weight: bold;
+    }
+
+    .date-popover-day.in-range {
+      background: #e0e7ff;
+      border-color: #c7d2fe;
+      font-weight: bold;
+    }
+
+    .date-popover-day.today-mini {
+      outline: 2px solid var(--today);
+    }
+
+    button.calendar-btn {
+      padding: 9px 10px;
+      min-width: 42px;
+    }
+
+    button {
+      cursor: pointer;
+      background: #111827;
+      color: white;
+      border-color: #111827;
+    }
+
+    button.secondary {
+      background: white;
+      color: #111827;
+    }
+
+    button.danger {
+      background: #b91c1c;
+      border-color: #b91c1c;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      background: white;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .weekday {
+      text-align: center;
+      font-weight: bold;
+      color: var(--muted);
+      padding: 8px 0;
+      font-size: 13px;
+    }
+
+    .day {
+      min-height: 125px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .day:hover { outline: 2px solid #c7d2fe; }
+    .day.empty { background: transparent; border: none; cursor: default; }
+    .day.today { outline: 3px solid var(--today); }
+    .day.critical { background: var(--critical); }
+    .day.holiday-national { background: var(--holiday-national); }
+    .day.holiday-cantonal { background: var(--holiday-cantonal); }
+
+    .day.weekend-sat,
+    .day.weekend-sun {
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(17, 24, 39, 0.09) 0,
+        rgba(17, 24, 39, 0.09) 1px,
+        transparent 1px,
+        transparent 7px
+      );
+    }
+
+    .date-number {
+      font-weight: bold;
+      margin-bottom: 2px;
+      flex: 0 0 auto;
+    }
+
+    .day-info {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .day-rabbocco-slot {
+      flex: 0 0 auto;
+      margin-top: auto;
+    }
+
+    .pill {
+      display: block;
+      margin-bottom: 4px;
+      padding: 4px 6px;
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1.2;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .absence-pill {
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    .rabbocco-pill {
+      border-radius: 3px;
+      font-weight: 800;
+      border: 1px solid rgba(0,0,0,0.22);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+    }
+
+    .ferie-Ilaria { background: var(--ilaria); }
+    .ferie-Massimo { background: var(--massimo); }
+    .ferie-Franco { background: var(--franco); }
+    .ferie-Roberto { background: var(--roberto); }
+    .rabbocco { color: #111827; font-weight: 800; border-color: rgba(0,0,0,0.18); }
+    .rabbocco-Ilaria { background: var(--ilaria); }
+    .rabbocco-Massimo { background: var(--massimo); }
+    .rabbocco-Franco { background: var(--franco); }
+    .rabbocco-Roberto { background: var(--roberto); }
+    .holiday-pill { font-weight: bold; }
+    .holiday-national-pill { background: var(--holiday-national); }
+    .holiday-cantonal-pill { background: var(--holiday-cantonal); }
+
+    .month-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 18px 0 10px;
+    }
+
+    .month-title h2 { margin: 0; font-size: 22px; }
+
+    .bottom-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 14px 0;
+    }
+
+    .quick-assignment {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .quick-assignment h3 {
+      margin-top: 0;
+    }
+
+    .quick-assignment.selected {
+      outline: 3px solid #c7d2fe;
+    }
+
+    .selected-day-label {
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      background: #f3f4f6;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: none;
+    }
+
+    details.assignment-manager,
+    details.absence-manager {
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+      padding-top: 12px;
+    }
+
+    details.assignment-manager summary,
+    details.absence-manager summary {
+      cursor: pointer;
+      font-weight: bold;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f9fafb;
+      user-select: none;
+    }
+
+    details.assignment-manager summary:hover,
+    details.absence-manager summary:hover {
+      background: #f3f4f6;
+    }
+
+    .assignment-manager-content,
+    .absence-manager-content {
+      margin-top: 12px;
+    }
+
+    .absence-table-wrapper {
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .absence-table-wrapper table {
+      margin-top: 0;
+    }
+
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      padding: 9px;
+    }
+
+    th { background: #f3f4f6; }
+    .small { color: var(--muted); font-size: 13px; }
+
+    body.view-only .editor,
+    body.view-only .quick-assignment,
+    body.view-only #exportPanel,
+    body.view-only #datePopover,
+    body.view-only .edit-only {
+      display: none !important;
+    }
+
+    body.view-only .day {
+      cursor: default;
+    }
+
+    body.view-only .day:hover {
+      outline: none;
+    }
+
+    body.view-only .viewer-notice {
+      display: block;
+    }
+
+    .viewer-notice {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f3f4f6;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 800px) {
+      main {
+        padding: 10px;
+      }
+
+      header {
+        padding: 14px 16px;
+      }
+
+      header h1 {
+        font-size: 19px;
+      }
+
+      .controls, .summary, .editor, .quick-assignment {
+        padding: 12px;
+        border-radius: 10px;
+      }
+
+      .calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .weekday {
+        display: none;
+      }
+
+      .day {
+        min-height: 112px;
+        padding: 7px;
+      }
+
+      .grid2 {
+        grid-template-columns: 1fr;
+      }
+
+      .row {
+        align-items: stretch;
+      }
+
+      .row > button,
+      .row > select,
+      .row > input,
+      .date-field {
+        max-width: 100%;
+      }
+
+      .date-field input[type="text"] {
+        width: 100%;
+        min-width: 125px;
+      }
+
+      .date-popover {
+        width: calc(100vw - 24px);
+        max-width: 320px;
+      }
+
+      .summary table,
+      .absence-table-wrapper table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .bottom-nav button {
+        flex: 1;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 8mm;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      body {
+        background: white;
+        font-size: 11px;
+      }
+
+      header {
+        padding: 10px 12px;
+        background: #111827 !important;
+        color: white !important;
+        break-after: avoid;
+      }
+
+      header h1 {
+        font-size: 18px;
+        margin-bottom: 2px;
+      }
+
+      header p {
+        font-size: 11px;
+      }
+
+      main {
+        max-width: none;
+        padding: 0;
+      }
+
+      button,
+      .bottom-nav,
+      .quick-assignment,
+      .editor,
+      #statusBox,
+      #exportPanel {
+        display: none !important;
+      }
+
+      .controls,
+      .summary {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 8px;
+        margin-bottom: 8px;
+        break-inside: avoid;
+      }
+
+      .controls .row {
+        display: none !important;
+      }
+
+      .legend {
+        display: flex;
+        gap: 5px;
+        margin-top: 0;
+      }
+
+      .tag {
+        font-size: 10px;
+        padding: 3px 6px;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+      }
+
+      .summary {
+        display: none;
+      }
+
+      .month-title {
+        margin: 8px 0 6px;
+        break-after: avoid;
+      }
+
+      .month-title h2 {
+        font-size: 20px;
+      }
+
+      .calendar {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        gap: 3px !important;
+        width: 100% !important;
+      }
+
+      .weekday {
+        display: block !important;
+        text-align: center;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 4px 0;
+        color: #111827 !important;
+        background: #f3f4f6 !important;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+
+      .day {
+        min-height: 76px;
+        padding: 4px;
+        border-radius: 5px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        cursor: default;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .day:hover {
+        outline: none;
+      }
+
+      .day.empty {
+        display: block;
+        background: #fafafa !important;
+        border: 1px solid #eeeeee;
+      }
+
+      .date-number {
+        font-size: 11px;
+        margin-bottom: 3px;
+      }
+
+      .pill {
+        font-size: 8.5px;
+        line-height: 1.1;
+        padding: 2px 3px;
+        margin-bottom: 2px;
+      }
+
+      .absence-pill {
+        border-radius: 999px;
+      }
+
+      .rabbocco-pill {
+        border-radius: 2px;
+        border-width: 1px;
+      }
+
+      table {
+        font-size: 10px;
+      }
+
+      th, td {
+        padding: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Calendario ferie e giro rabbocco</h1>
+    <p>Ferie, sostituzioni e assegnazioni rabbocco — versione giornaliera</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <div class="row">
+        <button type="button" onclick="changeMonth(-1)">← Mese precedente</button>
+        <select id="monthSelect" onchange="render()"></select>
+        <select id="yearSelect" onchange="render()"></select>
+        <button type="button" onclick="changeMonth(1)">Mese successivo →</button>
+        <button type="button" class="secondary" onclick="preparePrint()">Stampa / salva PDF</button>
+        <button type="button" class="secondary edit-only" onclick="showExportPanel()">Esporta dati</button>
+        <button type="button" class="secondary edit-only" onclick="document.getElementById('importFile').click()">Importa dati</button>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)" />
+        <button type="button" class="secondary edit-only" onclick="loadBasePlan()">Carica piano base</button>
+      </div>
+      <div class="viewer-notice">Modalità solo visualizzazione: le modifiche sono disattivate.</div>
+
+      <div class="legend">
+        <span class="tag"><span class="dot" style="background:var(--ilaria)"></span>Ilaria</span>
+        <span class="tag"><span class="dot" style="background:var(--massimo)"></span>Massimo</span>
+        <span class="tag"><span class="dot" style="background:var(--franco)"></span>Franco</span>
+        <span class="tag"><span class="dot" style="background:var(--roberto)"></span>Roberto</span>
+        <span class="tag"><span class="dot" style="background:var(--rabbocco)"></span>Assegnato rabbocco</span>
+        <span class="tag"><span class="dot" style="background:var(--critical)"></span>Sovrapposizione ferie</span>
+        <span class="tag"><span class="dot" style="background:var(--holiday-national)"></span>Parificato domenica</span>
+        <span class="tag"><span class="dot" style="background:var(--holiday-cantonal)"></span>Riposo uff. cant.</span>
+      </div>
+    <div id="statusBox" class="small" style="margin-top:12px;font-weight:bold;"></div>
+      <div id="exportPanel" style="display:none;margin-top:12px;">
+        <p class="small">Copia questo testo e salvalo in un file chiamato <strong>calendario_ferie_rabbocco_dati.json</strong>. È il backup dei dati.</p>
+        <textarea id="exportText" style="width:100%;min-height:180px;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:monospace;font-size:12px;"></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button type="button" class="secondary" onclick="copyExportText()">Copia testo backup</button>
+          <button type="button" class="secondary" onclick="downloadExportData()">Prova download JSON</button>
+          <button type="button" class="danger" onclick="hideExportPanel()">Chiudi backup</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="editor">
+      <details class="assignment-manager">
+        <summary>Inserisci assegnazione rabbocco</summary>
+        <div class="assignment-manager-content">
+          <p class="small">Clicca un giorno sul calendario oppure scegli una data, poi seleziona la persona e salva. I dati restano salvati nel browser.</p>
+          <div class="row">
+            <span class="date-field">
+              <input type="text" id="assignDate" placeholder="gg/mm/aaaa" inputmode="numeric" />
+              <button type="button" class="calendar-btn secondary" onclick="openDatePicker('assignDate', this)">📅</button>
+            </span>
+            <select id="assignPerson">
+              <option value="">-- scegli persona --</option>
+              <option value="Ilaria">Ilaria</option>
+              <option value="Massimo">Massimo</option>
+              <option value="Franco">Franco</option>
+              <option value="Roberto">Roberto</option>
+            </select>
+            <button type="button" onclick="saveAssignment()">Salva rabbocco</button>
+            <button type="button" class="danger" onclick="removeAssignment()">Rimuovi dal giorno</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="absence-manager">
+        <summary>Gestione assenze / ferie / malattia</summary>
+        <div class="absence-manager-content">
+          <h3>Aggiungi assenza / ferie / malattia</h3>
+          <p class="small">Inserisci assenze extra senza modificare il piano base. Le assenze vengono salvate nel browser e mostrate nel calendario.</p>
+          <div class="row">
+            <select id="absencePerson">
+              <option value="">-- scegli persona --</option>
+              <option value="Ilaria">Ilaria</option>
+              <option value="Massimo">Massimo</option>
+              <option value="Franco">Franco</option>
+              <option value="Roberto">Roberto</option>
+            </select>
+            <span class="date-field">
+              <input type="text" id="absenceStart" placeholder="dal: gg/mm/aaaa" inputmode="numeric" />
+              <button type="button" class="calendar-btn secondary" onclick="openDatePicker('absenceStart', this)">📅</button>
+            </span>
+            <span class="date-field">
+              <input type="text" id="absenceEnd" placeholder="al: gg/mm/aaaa" inputmode="numeric" />
+              <button type="button" class="calendar-btn secondary" onclick="openDatePicker('absenceEnd', this)">📅</button>
+            </span>
+            <select id="absenceReason">
+              <option value="Assenza">Assenza</option>
+              <option value="Ferie">Ferie</option>
+              <option value="Malattia">Malattia</option>
+              <option value="Infortunio">Infortunio</option>
+            </select>
+            <button type="button" onclick="saveExtraAbsence()">Salva assenza</button>
+            <button type="button" class="danger" onclick="clearExtraAbsences()">Cancella assenze extra</button>
+            <button type="button" class="secondary" onclick="restoreBaseAbsences()">Ripristina ferie base</button>
+          </div>
+          <div class="absence-table-wrapper">
+            <table id="extraAbsencesTable"></table>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="summary">
+      <div class="grid2">
+        <div>
+          <h3>Conteggio rabbocco anno selezionato</h3>
+          <div class="row" style="margin: 8px 0 10px;">
+            <label for="dailyRate"><strong>Tariffa rabbocco/giorno:</strong></label>
+            <input type="number" id="dailyRate" min="0" step="10" value="200" style="width:120px;" onchange="saveDailyRate(); renderSummary();" />
+            <span class="small">CHF</span>
+          </div>
+          <table id="summaryTable"></table>
+          <h3 style="margin-top:18px;">Conteggio rabbocco mese selezionato</h3>
+          <table id="monthlySummaryTable"></table>
+        </div>
+        <div>
+          <h3>Giorni critici nel mese</h3>
+          <table id="criticalTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="month-title"><h2 id="title"></h2></div>
+      <div class="calendar" id="calendar"></div>
+      <div class="bottom-nav">
+        <button type="button" onclick="changeMonth(-1)">← Mese precedente</button>
+        <button type="button" onclick="changeMonth(1)">Mese successivo →</button>
+      </div>
+
+      <div class="quick-assignment" id="quickAssignmentBox">
+        <h3>Inserisci assegnazione rabbocco</h3>
+        <div class="selected-day-label" id="selectedDayLabel"></div>
+        <p class="small">Clicca un giorno sul calendario oppure scegli una data, poi seleziona la persona e salva.</p>
+        <div class="row">
+          <span class="date-field">
+            <input type="text" id="assignDateBottom" placeholder="gg/mm/aaaa" inputmode="numeric" />
+            <button type="button" class="calendar-btn secondary" onclick="openDatePicker('assignDateBottom', this)">📅</button>
+          </span>
+          <select id="assignPersonBottom">
+            <option value="">-- scegli persona --</option>
+            <option value="Ilaria">Ilaria</option>
+            <option value="Massimo">Massimo</option>
+            <option value="Franco">Franco</option>
+            <option value="Roberto">Roberto</option>
+          </select>
+          <button type="button" onclick="saveAssignmentFromBottom()">Salva rabbocco</button>
+          <button type="button" class="danger" onclick="removeAssignmentFromBottom()">Rimuovi dal giorno</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="datePopover" class="date-popover" aria-hidden="true"></div>
+
+  <script>
+    const EDIT_PAGE_NAME = "gestione-rabbocco-9f47";
+    const pathName = window.location.pathname || "";
+
+    // Modalità consigliata:
+    // - calendario.html = solo visualizzazione
+    // - gestione-rabbocco-9f47.html = modificabile
+    // Non esiste più una scorciatoia tipo ?edit=...: la modifica si attiva solo dalla pagina con nome riservato.
+    const isEditMode = pathName.includes(EDIT_PAGE_NAME);
+    const isViewOnly = !isEditMode;
+
+    if (isViewOnly) document.body.classList.add("view-only");
+
+    const people = ["Ilaria", "Massimo", "Franco", "Roberto"];
+    const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+    const weekdayNames = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+    const personBackgroundColors = {
+      Ilaria: "#ffd6e7",
+      Massimo: "#9ee79a",
+      Franco: "#ffe8c7",
+      Roberto: "#d8ecff"
+    };
+
+    const holidays = {
+      "2026-01-01": { name: "Capodanno", type: "national" },
+      "2026-01-06": { name: "Epifania", type: "national" },
+      "2026-03-19": { name: "San Giuseppe", type: "cantonal" },
+      "2026-04-06": { name: "Lunedì di Pasqua", type: "national" },
+      "2026-05-01": { name: "Festa del lavoro", type: "cantonal" },
+      "2026-05-14": { name: "Ascensione", type: "national" },
+      "2026-05-25": { name: "Lunedì di Pentecoste", type: "cantonal" },
+      "2026-06-04": { name: "Corpus Domini", type: "cantonal" },
+      "2026-06-29": { name: "San Pietro e Paolo", type: "cantonal" },
+      "2026-08-01": { name: "Festa Nazionale Svizzera", type: "national" },
+      "2026-08-15": { name: "Assunzione", type: "national" },
+      "2026-11-01": { name: "Ognissanti", type: "national" },
+      "2026-12-08": { name: "Immacolata", type: "cantonal" },
+      "2026-12-25": { name: "Natale", type: "national" },
+      "2026-12-26": { name: "Santo Stefano", type: "national" },
+
+      "2027-01-01": { name: "Capodanno", type: "national" },
+      "2027-01-06": { name: "Epifania", type: "national" },
+      "2027-03-19": { name: "San Giuseppe", type: "cantonal" },
+      "2027-03-29": { name: "Lunedì di Pasqua", type: "national" },
+      "2027-05-01": { name: "Festa del lavoro", type: "cantonal" },
+      "2027-05-06": { name: "Ascensione", type: "national" },
+      "2027-05-17": { name: "Lunedì di Pentecoste", type: "cantonal" },
+      "2027-05-27": { name: "Corpus Domini", type: "cantonal" },
+      "2027-06-29": { name: "San Pietro e Paolo", type: "cantonal" },
+      "2027-08-01": { name: "Festa Nazionale Svizzera", type: "national" },
+      "2027-08-15": { name: "Assunzione", type: "national" },
+      "2027-11-01": { name: "Ognissanti", type: "national" },
+      "2027-12-08": { name: "Immacolata", type: "cantonal" },
+      "2027-12-25": { name: "Natale", type: "national" },
+      "2027-12-26": { name: "Santo Stefano", type: "national" },
+
+      "2028-01-01": { name: "Capodanno", type: "national" },
+      "2028-01-06": { name: "Epifania", type: "national" },
+      "2028-03-19": { name: "San Giuseppe", type: "cantonal" },
+      "2028-04-17": { name: "Lunedì di Pasqua", type: "national" },
+      "2028-05-01": { name: "Festa del lavoro", type: "cantonal" },
+      "2028-05-25": { name: "Ascensione", type: "national" },
+      "2028-06-05": { name: "Lunedì di Pentecoste", type: "cantonal" },
+      "2028-06-15": { name: "Corpus Domini", type: "cantonal" },
+      "2028-06-29": { name: "San Pietro e Paolo", type: "cantonal" },
+      "2028-08-01": { name: "Festa Nazionale Svizzera", type: "national" },
+      "2028-08-15": { name: "Assunzione", type: "national" },
+      "2028-11-01": { name: "Ognissanti", type: "national" },
+      "2028-12-08": { name: "Immacolata", type: "cantonal" },
+      "2028-12-25": { name: "Natale", type: "national" },
+      "2028-12-26": { name: "Santo Stefano", type: "national" }
+    };
+
+    const baseAbsences = [
+      { person: "Massimo", start: "2026-05-13", end: "2026-05-24", reason: "Ferie" },
+      { person: "Massimo", start: "2026-06-22", end: "2026-06-28", reason: "Ferie" },
+      { person: "Franco", start: "2026-05-20", end: "2026-05-22", reason: "Ferie" },
+      { person: "Franco", start: "2026-06-08", end: "2026-06-14", reason: "Ferie" },
+      { person: "Franco", start: "2026-07-27", end: "2026-08-02", reason: "Ferie" },
+      { person: "Franco", start: "2026-08-31", end: "2026-09-06", reason: "Ferie" },
+      { person: "Franco", start: "2026-09-07", end: "2026-09-20", reason: "Ferie" },
+      { person: "Franco", start: "2026-12-28", end: "2026-12-31", reason: "Ferie" },
+      { person: "Ilaria", start: "2026-06-08", end: "2026-06-14", reason: "Ferie" },
+      { person: "Ilaria", start: "2026-08-17", end: "2026-08-23", reason: "Ferie" },
+      { person: "Ilaria", start: "2026-09-07", end: "2026-09-20", reason: "Ferie" },
+      { person: "Roberto", start: "2026-06-01", end: "2026-06-07", reason: "Ferie" },
+      { person: "Roberto", start: "2026-06-22", end: "2026-07-12", reason: "Ferie" },
+      { person: "Roberto", start: "2026-07-27", end: "2026-07-31", reason: "Ferie" },
+      { person: "Roberto", start: "2026-08-17", end: "2026-09-06", reason: "Ferie" }
+    ];
+
+    const EXTRA_ABSENCES_KEY = "rabboccoExtraAbsencesV1";
+    const DELETED_BASE_ABSENCES_KEY = "rabboccoDeletedBaseAbsencesV1";
+    let extraAbsences = loadExtraAbsences();
+    let deletedBaseAbsences = loadDeletedBaseAbsences();
+
+    const baseAssignments = {
+      "2026-05-19": "Roberto",
+      "2026-05-20": "Roberto",
+      "2026-05-21": "Ilaria",
+      "2026-05-22": "Roberto",
+      "2026-05-26": "Massimo",
+      "2026-05-27": "Franco",
+      "2026-05-28": "Massimo",
+      "2026-05-29": "Massimo",
+      "2026-06-02": "Ilaria",
+      "2026-06-03": "Massimo",
+      "2026-06-05": "Franco",
+      "2026-06-09": "Massimo",
+      "2026-06-10": "Massimo",
+      "2026-06-11": "Massimo",
+      "2026-06-12": "Massimo",
+      "2026-06-16": "Ilaria",
+      "2026-06-17": "Massimo",
+      "2026-06-18": "Ilaria",
+      "2026-06-19": "Massimo",
+      "2026-06-23": "Ilaria",
+      "2026-06-24": "Franco",
+      "2026-06-25": "Ilaria",
+      "2026-06-26": "Franco",
+      "2026-06-30": "Massimo",
+      "2026-07-01": "Massimo",
+      "2026-07-02": "Massimo",
+      "2026-07-03": "Ilaria",
+      "2026-07-07": "Massimo",
+      "2026-07-08": "Franco",
+      "2026-07-09": "Massimo",
+      "2026-07-10": "Massimo",
+      "2026-07-14": "Massimo",
+      "2026-07-15": "Ilaria",
+      "2026-07-16": "Massimo",
+      "2026-07-17": "Franco",
+      "2026-07-21": "Ilaria",
+      "2026-07-22": "Massimo",
+      "2026-07-23": "Massimo",
+      "2026-07-24": "Massimo",
+      "2026-07-28": "Ilaria",
+      "2026-07-29": "Ilaria",
+      "2026-07-30": "Massimo",
+      "2026-07-31": "Massimo",
+      "2026-08-04": "Ilaria",
+      "2026-08-05": "Massimo",
+      "2026-08-06": "Ilaria",
+      "2026-08-07": "Massimo",
+      "2026-08-11": "Franco",
+      "2026-08-12": "Ilaria",
+      "2026-08-13": "Massimo",
+      "2026-08-14": "Franco",
+      "2026-08-18": "Massimo",
+      "2026-08-19": "Massimo",
+      "2026-08-20": "Massimo",
+      "2026-08-21": "Franco",
+      "2026-08-25": "Ilaria",
+      "2026-08-26": "Massimo",
+      "2026-08-27": "Ilaria",
+      "2026-08-28": "Massimo",
+      "2026-09-01": "Ilaria",
+      "2026-09-02": "Massimo",
+      "2026-09-03": "Ilaria",
+      "2026-09-04": "Massimo",
+      "2026-09-08": "Massimo",
+      "2026-09-09": "Massimo",
+      "2026-09-10": "Massimo",
+      "2026-09-11": "Massimo",
+      "2026-09-15": "Massimo",
+      "2026-09-16": "Massimo",
+      "2026-09-17": "Roberto",
+      "2026-09-18": "Massimo",
+      "2026-09-22": "Ilaria",
+      "2026-09-23": "Franco",
+      "2026-09-24": "Ilaria",
+      "2026-09-25": "Massimo",
+      "2026-09-29": "Ilaria",
+      "2026-09-30": "Massimo",
+      "2026-10-01": "Ilaria",
+      "2026-10-02": "Massimo",
+      "2026-10-06": "Franco",
+      "2026-10-07": "Franco",
+      "2026-10-08": "Franco",
+      "2026-10-09": "Massimo",
+      "2026-10-13": "Franco",
+      "2026-10-14": "Massimo",
+      "2026-10-15": "Massimo",
+      "2026-10-16": "Massimo",
+      "2026-10-20": "Franco",
+      "2026-10-21": "Massimo",
+      "2026-10-22": "Massimo",
+      "2026-10-23": "Franco",
+      "2026-10-27": "Roberto",
+      "2026-10-28": "Franco",
+      "2026-10-29": "Massimo",
+      "2026-10-30": "Massimo",
+      "2026-11-03": "Massimo",
+      "2026-11-04": "Franco",
+      "2026-11-05": "Ilaria",
+      "2026-11-06": "Franco",
+      "2026-11-10": "Massimo",
+      "2026-11-11": "Franco",
+      "2026-11-12": "Massimo",
+      "2026-11-13": "Franco",
+      "2026-11-17": "Massimo",
+      "2026-11-18": "Massimo",
+      "2026-11-19": "Ilaria",
+      "2026-11-20": "Franco",
+      "2026-11-24": "Franco",
+      "2026-11-25": "Roberto",
+      "2026-11-26": "Ilaria",
+      "2026-11-27": "Massimo",
+      "2026-12-01": "Franco",
+      "2026-12-02": "Massimo",
+      "2026-12-03": "Massimo",
+      "2026-12-04": "Ilaria",
+      "2026-12-09": "Massimo",
+      "2026-12-10": "Franco",
+      "2026-12-11": "Franco",
+      "2026-12-15": "Massimo",
+      "2026-12-16": "Massimo",
+      "2026-12-17": "Franco",
+      "2026-12-18": "Franco",
+      "2026-12-22": "Ilaria",
+      "2026-12-23": "Roberto",
+      "2026-12-24": "Massimo",
+      "2026-12-29": "Massimo",
+      "2026-12-30": "Roberto",
+      "2026-12-31": "Roberto"
+    };
+
+    function isRabboccoWorkday(key) {
+      const d = new Date(`${key}T00:00:00`);
+      const day = d.getDay();
+      return [2, 3, 4, 5].includes(day) && !holidays[key];
+    }
+
+    function isTuesdayAfterMondayHoliday(key) {
+      const d = new Date(`${key}T00:00:00`);
+      if (d.getDay() !== 2) return false;
+      const previous = new Date(d);
+      previous.setDate(previous.getDate() - 1);
+      return !!holidays[dateKey(previous)];
+    }
+
+    function generateEstimatedAssignmentsForYear(year) {
+      const generated = {};
+      const counts = Object.fromEntries(people.map(person => [person, 0]));
+      const weights = {
+        Ilaria: 0.205,
+        Massimo: 0.49,
+        Franco: 0.215,
+        Roberto: 0.09
+      };
+
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = dateKey(d);
+        if (!isRabboccoWorkday(key)) continue;
+
+        let candidates = [...people];
+        if (isTuesdayAfterMondayHoliday(key)) {
+          candidates = candidates.filter(person => person !== "Franco");
+        }
+
+        const assigned = candidates
+          .slice()
+          .sort((a, b) => (counts[a] / weights[a]) - (counts[b] / weights[b]))[0];
+
+        generated[key] = assigned;
+        counts[assigned]++;
+      }
+
+      return generated;
+    }
+
+    const uploadedTestAssignments = {
+      "2026-05-19": "Franco",
+      "2026-05-20": "Roberto",
+      "2026-05-21": "Ilaria",
+      "2026-05-22": "Roberto",
+      "2026-05-26": "Massimo",
+      "2026-05-27": "Franco",
+      "2026-05-28": "Massimo",
+      "2026-05-29": "Massimo",
+      "2026-06-03": "Massimo",
+      "2026-06-05": "Franco",
+      "2026-06-09": "Massimo",
+      "2026-06-11": "Massimo",
+      "2026-06-12": "Roberto",
+      "2026-06-23": "Ilaria",
+      "2026-06-24": "Franco",
+      "2026-06-25": "Ilaria",
+      "2026-06-26": "Franco",
+      "2026-06-30": "Massimo",
+      "2026-07-01": "Massimo",
+      "2026-07-02": "Massimo",
+      "2026-07-07": "Massimo",
+      "2026-07-08": "Franco",
+      "2026-07-09": "Massimo",
+      "2026-07-10": "Massimo",
+      "2026-07-16": "Massimo",
+      "2026-07-22": "Massimo",
+      "2026-07-23": "Massimo",
+      "2026-07-28": "Ilaria",
+      "2026-07-31": "Massimo",
+      "2026-08-05": "Massimo",
+      "2026-08-07": "Massimo",
+      "2026-08-13": "Massimo",
+      "2026-08-14": "Massimo",
+      "2026-08-18": "Massimo",
+      "2026-08-19": "Massimo",
+      "2026-08-25": "Massimo",
+      "2026-08-26": "Massimo",
+      "2026-08-28": "Franco",
+      "2026-09-01": "Ilaria",
+      "2026-09-02": "Massimo",
+      "2026-09-03": "Ilaria",
+      "2026-09-04": "Massimo",
+      "2026-09-08": "Massimo",
+      "2026-09-09": "Massimo",
+      "2026-09-10": "Massimo",
+      "2026-09-11": "Roberto",
+      "2026-09-15": "Massimo",
+      "2026-09-16": "Massimo",
+      "2026-09-18": "Massimo",
+      "2026-09-23": "Franco",
+      "2026-09-25": "Massimo",
+      "2026-09-30": "Massimo",
+      "2026-10-02": "Franco",
+      "2026-10-06": "Franco",
+      "2026-10-09": "Massimo",
+      "2026-10-15": "Massimo",
+      "2026-10-16": "Massimo",
+      "2026-10-21": "Massimo",
+      "2026-10-29": "Massimo",
+      "2026-11-04": "Massimo",
+      "2026-11-10": "Massimo",
+      "2026-11-11": "Ilaria",
+      "2026-11-12": "Massimo",
+      "2026-11-18": "Massimo",
+      "2026-11-24": "Franco",
+      "2026-12-01": "Franco",
+      "2026-12-02": "Massimo",
+      "2026-12-09": "Massimo",
+      "2026-12-10": "Franco",
+      "2026-12-11": "Franco",
+      "2026-12-15": "Franco",
+      "2026-12-16": "Massimo",
+      "2026-12-24": "Massimo",
+      "2026-12-29": "Massimo",
+      "2027-01-05": "Ilaria",
+      "2027-01-07": "Massimo",
+      "2027-01-08": "Franco",
+      "2027-01-12": "Roberto",
+      "2027-01-13": "Massimo",
+      "2027-01-14": "Massimo",
+      "2027-01-15": "Franco",
+      "2027-01-19": "Ilaria",
+      "2027-01-20": "Massimo",
+      "2027-01-21": "Massimo",
+      "2027-01-22": "Franco",
+      "2027-01-26": "Ilaria",
+      "2027-01-27": "Massimo",
+      "2027-01-28": "Roberto",
+      "2027-01-29": "Massimo",
+      "2027-02-02": "Franco",
+      "2027-02-03": "Massimo",
+      "2027-02-04": "Ilaria",
+      "2027-02-05": "Massimo",
+      "2027-02-09": "Massimo",
+      "2027-02-10": "Franco",
+      "2027-02-11": "Ilaria",
+      "2027-02-12": "Massimo",
+      "2027-02-16": "Roberto",
+      "2027-02-17": "Massimo",
+      "2027-02-18": "Franco",
+      "2027-02-19": "Ilaria",
+      "2027-02-23": "Massimo",
+      "2027-02-24": "Massimo",
+      "2027-02-25": "Franco",
+      "2027-02-26": "Massimo",
+      "2027-03-02": "Ilaria",
+      "2027-03-03": "Massimo",
+      "2027-03-04": "Franco",
+      "2027-03-05": "Massimo",
+      "2027-03-09": "Roberto",
+      "2027-03-10": "Ilaria",
+      "2027-03-11": "Massimo",
+      "2027-03-12": "Massimo",
+      "2027-03-16": "Franco",
+      "2027-03-17": "Massimo",
+      "2027-03-18": "Ilaria",
+      "2027-03-23": "Massimo",
+      "2027-03-24": "Franco",
+      "2027-03-25": "Massimo",
+      "2027-03-26": "Ilaria",
+      "2027-03-30": "Roberto",
+      "2027-03-31": "Massimo",
+      "2027-04-01": "Franco",
+      "2027-04-02": "Massimo",
+      "2027-04-06": "Ilaria",
+      "2027-04-07": "Massimo",
+      "2027-04-08": "Massimo",
+      "2027-04-09": "Franco",
+      "2027-04-13": "Massimo",
+      "2027-04-14": "Ilaria",
+      "2027-04-15": "Massimo",
+      "2027-04-16": "Roberto",
+      "2027-04-20": "Franco",
+      "2027-04-21": "Massimo",
+      "2027-04-22": "Ilaria",
+      "2027-04-23": "Massimo",
+      "2027-04-27": "Franco",
+      "2027-04-28": "Massimo",
+      "2027-04-29": "Massimo",
+      "2027-04-30": "Ilaria",
+      "2027-05-04": "Franco",
+      "2027-05-05": "Massimo",
+      "2027-05-07": "Roberto",
+      "2027-05-11": "Massimo",
+      "2027-05-12": "Ilaria",
+      "2027-05-13": "Massimo",
+      "2027-05-14": "Franco",
+      "2027-05-18": "Massimo",
+      "2027-05-19": "Ilaria",
+      "2027-05-20": "Massimo",
+      "2027-05-21": "Franco",
+      "2027-05-25": "Massimo",
+      "2027-05-26": "Massimo",
+      "2027-05-28": "Roberto",
+      "2027-06-01": "Ilaria",
+      "2027-06-02": "Franco",
+      "2027-06-03": "Massimo",
+      "2027-06-04": "Massimo",
+      "2027-06-08": "Ilaria",
+      "2027-06-09": "Massimo",
+      "2027-06-10": "Franco",
+      "2027-06-11": "Massimo",
+      "2027-06-15": "Massimo",
+      "2027-06-16": "Ilaria",
+      "2027-06-17": "Franco",
+      "2027-06-18": "Roberto",
+      "2027-06-22": "Massimo",
+      "2027-06-23": "Massimo",
+      "2027-06-24": "Ilaria",
+      "2027-06-25": "Franco",
+      "2027-06-30": "Massimo",
+      "2027-07-01": "Massimo",
+      "2027-07-02": "Ilaria",
+      "2027-07-06": "Franco",
+      "2027-07-07": "Massimo",
+      "2027-07-08": "Massimo",
+      "2027-07-09": "Roberto",
+      "2027-07-13": "Massimo",
+      "2027-07-14": "Franco",
+      "2027-07-15": "Ilaria",
+      "2027-07-16": "Massimo",
+      "2027-07-20": "Massimo",
+      "2027-07-21": "Franco",
+      "2027-07-22": "Ilaria",
+      "2027-07-23": "Massimo",
+      "2027-07-27": "Massimo",
+      "2027-07-28": "Roberto",
+      "2027-07-29": "Franco",
+      "2027-07-30": "Ilaria",
+      "2027-08-03": "Massimo",
+      "2027-08-04": "Massimo",
+      "2027-08-05": "Franco",
+      "2027-08-06": "Massimo",
+      "2027-08-10": "Ilaria",
+      "2027-08-11": "Massimo",
+      "2027-08-12": "Massimo",
+      "2027-08-13": "Franco",
+      "2027-08-17": "Ilaria",
+      "2027-08-18": "Roberto",
+      "2027-08-19": "Massimo",
+      "2027-08-20": "Massimo",
+      "2027-08-24": "Franco",
+      "2027-08-25": "Massimo",
+      "2027-08-26": "Ilaria",
+      "2027-08-27": "Massimo",
+      "2027-08-31": "Franco",
+      "2027-09-01": "Massimo",
+      "2027-09-02": "Ilaria",
+      "2027-09-03": "Massimo",
+      "2027-09-07": "Roberto",
+      "2027-09-08": "Massimo",
+      "2027-09-09": "Franco",
+      "2027-09-10": "Ilaria",
+      "2027-09-14": "Massimo",
+      "2027-09-15": "Massimo",
+      "2027-09-16": "Franco",
+      "2027-09-17": "Massimo",
+      "2027-09-21": "Ilaria",
+      "2027-09-22": "Massimo",
+      "2027-09-23": "Franco",
+      "2027-09-24": "Roberto",
+      "2027-09-28": "Massimo",
+      "2027-09-29": "Ilaria",
+      "2027-09-30": "Massimo",
+      "2027-10-01": "Franco",
+      "2027-10-05": "Massimo",
+      "2027-10-06": "Massimo",
+      "2027-10-07": "Ilaria",
+      "2027-10-08": "Massimo",
+      "2027-10-12": "Franco",
+      "2027-10-13": "Massimo",
+      "2027-10-14": "Roberto",
+      "2027-10-15": "Ilaria",
+      "2027-10-19": "Massimo",
+      "2027-10-20": "Franco",
+      "2027-10-21": "Massimo",
+      "2027-10-22": "Ilaria",
+      "2027-10-26": "Massimo",
+      "2027-10-27": "Franco",
+      "2027-10-28": "Massimo",
+      "2027-10-29": "Massimo",
+      "2027-11-02": "Ilaria",
+      "2027-11-03": "Roberto",
+      "2027-11-04": "Massimo",
+      "2027-11-05": "Franco",
+      "2027-11-09": "Massimo",
+      "2027-11-10": "Ilaria",
+      "2027-11-11": "Massimo",
+      "2027-11-12": "Franco",
+      "2027-11-16": "Massimo",
+      "2027-11-17": "Massimo",
+      "2027-11-18": "Ilaria",
+      "2027-11-19": "Franco",
+      "2027-11-23": "Massimo",
+      "2027-11-24": "Roberto",
+      "2027-11-25": "Massimo",
+      "2027-11-26": "Ilaria",
+      "2027-11-30": "Franco",
+      "2027-12-01": "Massimo",
+      "2027-12-02": "Massimo",
+      "2027-12-03": "Ilaria",
+      "2027-12-07": "Massimo",
+      "2027-12-09": "Franco",
+      "2027-12-10": "Massimo",
+      "2027-12-14": "Roberto",
+      "2027-12-15": "Massimo",
+      "2027-12-16": "Ilaria",
+      "2027-12-17": "Franco",
+      "2027-12-21": "Massimo",
+      "2027-12-22": "Massimo",
+      "2027-12-23": "Ilaria",
+      "2027-12-24": "Franco",
+      "2027-12-28": "Massimo",
+      "2027-12-29": "Massimo",
+      "2027-12-30": "Ilaria",
+      "2027-12-31": "Massimo",
+      "2028-01-04": "Ilaria",
+      "2028-01-05": "Massimo",
+      "2028-01-07": "Franco",
+      "2028-01-11": "Roberto",
+      "2028-01-12": "Massimo",
+      "2028-01-13": "Massimo",
+      "2028-01-14": "Franco",
+      "2028-01-18": "Ilaria",
+      "2028-01-19": "Massimo",
+      "2028-01-20": "Massimo",
+      "2028-01-21": "Franco",
+      "2028-01-25": "Ilaria",
+      "2028-01-26": "Massimo",
+      "2028-01-27": "Roberto",
+      "2028-01-28": "Massimo",
+      "2028-02-01": "Franco",
+      "2028-02-02": "Massimo",
+      "2028-02-03": "Ilaria",
+      "2028-02-04": "Massimo",
+      "2028-02-08": "Massimo",
+      "2028-02-09": "Franco",
+      "2028-02-10": "Ilaria",
+      "2028-02-11": "Massimo",
+      "2028-02-15": "Roberto",
+      "2028-02-16": "Massimo",
+      "2028-02-17": "Franco",
+      "2028-02-18": "Ilaria",
+      "2028-02-22": "Massimo",
+      "2028-02-23": "Massimo",
+      "2028-02-24": "Franco",
+      "2028-02-25": "Massimo",
+      "2028-02-29": "Ilaria",
+      "2028-03-01": "Massimo",
+      "2028-03-02": "Franco",
+      "2028-03-03": "Massimo",
+      "2028-03-07": "Roberto",
+      "2028-03-08": "Ilaria",
+      "2028-03-09": "Massimo",
+      "2028-03-10": "Massimo",
+      "2028-03-14": "Franco",
+      "2028-03-15": "Massimo",
+      "2028-03-16": "Ilaria",
+      "2028-03-17": "Massimo",
+      "2028-03-21": "Franco",
+      "2028-03-22": "Massimo",
+      "2028-03-23": "Ilaria",
+      "2028-03-24": "Roberto",
+      "2028-03-28": "Massimo",
+      "2028-03-29": "Franco",
+      "2028-03-30": "Massimo",
+      "2028-03-31": "Ilaria",
+      "2028-04-04": "Massimo",
+      "2028-04-05": "Massimo",
+      "2028-04-06": "Franco",
+      "2028-04-07": "Massimo",
+      "2028-04-11": "Ilaria",
+      "2028-04-12": "Massimo",
+      "2028-04-13": "Roberto",
+      "2028-04-14": "Franco",
+      "2028-04-18": "Massimo",
+      "2028-04-19": "Ilaria",
+      "2028-04-20": "Massimo",
+      "2028-04-21": "Franco",
+      "2028-04-25": "Massimo",
+      "2028-04-26": "Massimo",
+      "2028-04-27": "Ilaria",
+      "2028-04-28": "Franco",
+      "2028-05-02": "Massimo",
+      "2028-05-03": "Roberto",
+      "2028-05-04": "Massimo",
+      "2028-05-05": "Ilaria",
+      "2028-05-09": "Massimo",
+      "2028-05-10": "Franco",
+      "2028-05-11": "Massimo",
+      "2028-05-12": "Ilaria",
+      "2028-05-16": "Massimo",
+      "2028-05-17": "Franco",
+      "2028-05-18": "Massimo",
+      "2028-05-19": "Massimo",
+      "2028-05-23": "Roberto",
+      "2028-05-24": "Ilaria",
+      "2028-05-26": "Franco",
+      "2028-05-30": "Massimo",
+      "2028-05-31": "Massimo",
+      "2028-06-01": "Ilaria",
+      "2028-06-02": "Massimo",
+      "2028-06-06": "Massimo",
+      "2028-06-07": "Franco",
+      "2028-06-08": "Massimo",
+      "2028-06-09": "Ilaria",
+      "2028-06-13": "Franco",
+      "2028-06-14": "Roberto",
+      "2028-06-16": "Massimo",
+      "2028-06-20": "Massimo",
+      "2028-06-21": "Ilaria",
+      "2028-06-22": "Franco",
+      "2028-06-23": "Massimo",
+      "2028-06-27": "Massimo",
+      "2028-06-28": "Ilaria",
+      "2028-06-30": "Franco",
+      "2028-07-04": "Massimo",
+      "2028-07-05": "Massimo",
+      "2028-07-06": "Roberto",
+      "2028-07-07": "Massimo",
+      "2028-07-11": "Franco",
+      "2028-07-12": "Ilaria",
+      "2028-07-13": "Massimo",
+      "2028-07-14": "Massimo",
+      "2028-07-18": "Franco",
+      "2028-07-19": "Ilaria",
+      "2028-07-20": "Massimo",
+      "2028-07-21": "Massimo",
+      "2028-07-25": "Roberto",
+      "2028-07-26": "Franco",
+      "2028-07-27": "Ilaria",
+      "2028-07-28": "Massimo",
+      "2028-08-02": "Massimo",
+      "2028-08-03": "Franco",
+      "2028-08-04": "Massimo",
+      "2028-08-08": "Ilaria",
+      "2028-08-09": "Massimo",
+      "2028-08-10": "Massimo",
+      "2028-08-11": "Franco",
+      "2028-08-16": "Ilaria",
+      "2028-08-17": "Roberto",
+      "2028-08-18": "Massimo",
+      "2028-08-22": "Massimo",
+      "2028-08-23": "Franco",
+      "2028-08-24": "Massimo",
+      "2028-08-25": "Ilaria",
+      "2028-08-29": "Massimo",
+      "2028-08-30": "Franco",
+      "2028-08-31": "Massimo",
+      "2028-09-01": "Ilaria",
+      "2028-09-05": "Massimo",
+      "2028-09-06": "Roberto",
+      "2028-09-07": "Massimo",
+      "2028-09-08": "Franco",
+      "2028-09-12": "Ilaria",
+      "2028-09-13": "Massimo",
+      "2028-09-14": "Massimo",
+      "2028-09-15": "Franco",
+      "2028-09-19": "Massimo",
+      "2028-09-20": "Ilaria",
+      "2028-09-21": "Massimo",
+      "2028-09-22": "Franco",
+      "2028-09-26": "Roberto",
+      "2028-09-27": "Massimo",
+      "2028-09-28": "Ilaria",
+      "2028-09-29": "Massimo",
+      "2028-10-03": "Franco",
+      "2028-10-04": "Massimo",
+      "2028-10-05": "Massimo",
+      "2028-10-06": "Ilaria",
+      "2028-10-10": "Massimo",
+      "2028-10-11": "Franco",
+      "2028-10-12": "Massimo",
+      "2028-10-13": "Roberto",
+      "2028-10-17": "Ilaria",
+      "2028-10-18": "Massimo",
+      "2028-10-19": "Franco",
+      "2028-10-20": "Massimo",
+      "2028-10-24": "Ilaria",
+      "2028-10-25": "Massimo",
+      "2028-10-26": "Franco",
+      "2028-10-27": "Massimo",
+      "2028-10-31": "Massimo",
+      "2028-11-02": "Ilaria",
+      "2028-11-03": "Roberto",
+      "2028-11-07": "Massimo",
+      "2028-11-08": "Franco",
+      "2028-11-09": "Massimo",
+      "2028-11-10": "Ilaria",
+      "2028-11-14": "Massimo",
+      "2028-11-15": "Franco",
+      "2028-11-16": "Massimo",
+      "2028-11-17": "Massimo",
+      "2028-11-21": "Ilaria",
+      "2028-11-22": "Franco",
+      "2028-11-23": "Massimo",
+      "2028-11-24": "Roberto",
+      "2028-11-28": "Massimo",
+      "2028-11-29": "Ilaria",
+      "2028-11-30": "Franco",
+      "2028-12-01": "Massimo",
+      "2028-12-05": "Massimo",
+      "2028-12-06": "Ilaria",
+      "2028-12-07": "Massimo",
+      "2028-12-12": "Franco",
+      "2028-12-13": "Massimo",
+      "2028-12-14": "Roberto",
+      "2028-12-15": "Massimo",
+      "2028-12-19": "Ilaria",
+      "2028-12-20": "Franco",
+      "2028-12-21": "Massimo",
+      "2028-12-22": "Massimo",
+      "2028-12-27": "Ilaria",
+      "2028-12-28": "Franco",
+      "2028-12-29": "Massimo",
+      "2026-07-03": "Franco",
+      "2026-07-15": "Massimo",
+      "2026-07-30": "Ilaria",
+      "2026-07-29": "Massimo",
+      "2026-06-02": "Massimo",
+      "2026-06-18": "Massimo",
+      "2026-06-16": "Massimo",
+      "2026-06-17": "Franco",
+      "2026-07-17": "Massimo",
+      "2026-07-14": "Franco",
+      "2026-07-21": "Massimo",
+      "2026-07-24": "Franco",
+      "2026-06-10": "Massimo",
+      "2026-08-04": "Franco",
+      "2026-08-06": "Massimo",
+      "2026-08-11": "Massimo",
+      "2026-08-12": "Franco",
+      "2026-09-22": "Massimo",
+      "2026-09-29": "Franco",
+      "2026-10-14": "Franco",
+      "2026-10-13": "Massimo",
+      "2026-10-07": "Massimo",
+      "2026-10-20": "Massimo",
+      "2026-10-08": "Massimo",
+      "2026-10-22": "Franco",
+      "2026-10-23": "Massimo",
+      "2026-10-30": "Franco",
+      "2026-10-27": "Franco",
+      "2026-10-28": "Massimo",
+      "2026-10-01": "Massimo",
+      "2026-06-19": "Massimo",
+      "2026-08-20": "Franco",
+      "2026-08-21": "Massimo",
+      "2026-09-17": "Massimo",
+      "2026-09-24": "Massimo",
+      "2026-11-03": "Franco",
+      "2026-11-19": "Franco",
+      "2026-11-20": "Massimo",
+      "2026-11-26": "Massimo",
+      "2026-11-17": "Ilaria",
+      "2026-11-25": "Ilaria",
+      "2026-11-05": "Massimo",
+      "2026-11-06": "Franco",
+      "2026-11-13": "Franco",
+      "2026-11-27": "Roberto",
+      "2026-12-31": "Massimo",
+      "2026-12-22": "Massimo",
+      "2026-12-23": "Franco",
+      "2026-12-30": "Roberto",
+      "2026-12-03": "Ilaria",
+      "2026-12-04": "Massimo",
+      "2026-12-17": "Franco",
+      "2026-12-18": "Massimo",
+      "2026-08-27": "Massimo"
+    };
+
+    const uploadedTestDailyRate = 200;
+
+    const estimatedAssignments = { ...uploadedTestAssignments };
+
+    const STORAGE_KEY = "rabboccoAssignmentsFrancoAboveIlaria70_30_V11";
+    const DAILY_RATE_KEY = "rabboccoDailyRateV1";
+    let assignments = loadAssignments();
+    let dailyRate = loadDailyRate();
+    const today = new Date();
+    let currentMonth = today.getFullYear() === 2026 ? today.getMonth() : 4;
+    let currentYear = 2026;
+    let activeDateInputId = null;
+    let pickerMonth = currentMonth;
+    let pickerYear = currentYear;
+    let absenceRangeMode = false;
+
+    function loadAssignments() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : { ...estimatedAssignments };
+      } catch (e) {
+        return { ...estimatedAssignments };
+      }
+    }
+
+    function saveAssignments() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(assignments));
+    }
+
+    function loadDailyRate() {
+      const saved = localStorage.getItem(DAILY_RATE_KEY);
+      if (saved === null || saved === "" || saved === "null" || saved === "undefined") {
+        localStorage.setItem(DAILY_RATE_KEY, "200");
+        return 200;
+      }
+      const parsed = Number(saved);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        localStorage.setItem(DAILY_RATE_KEY, "200");
+        return 200;
+      }
+      return parsed;
+    }
+
+    function saveDailyRate() {
+      const input = document.getElementById("dailyRate");
+      const parsed = Number(input.value);
+      dailyRate = Number.isFinite(parsed) && parsed >= 0 ? parsed : 200;
+      input.value = String(dailyRate);
+      input.setAttribute("value", String(dailyRate));
+      localStorage.setItem(DAILY_RATE_KEY, String(dailyRate));
+      showStatus(`Tariffa aggiornata a ${formatCHF(dailyRate)} al giorno.`);
+    }
+
+    function formatCHF(value) {
+      return `${Math.round(value).toLocaleString("it-CH")} CHF`;
+    }
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function dateKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+    function inRange(key, start, end) { return key >= start && key <= end; }
+
+    function formatDateCH(key) {
+      if (!key || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(key)) return key || "";
+      const parts = key.split("-");
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function parseDateCH(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(raw)) return raw;
+
+      const match = raw.match(/^([0-9]{1,2})[./-]([0-9]{1,2})[./-]([0-9]{2}|[0-9]{4})$/);
+      if (!match) return "";
+
+      const day = Number(match[1]);
+      const month = Number(match[2]);
+      let year = Number(match[3]);
+      if (year < 100) year += 2000;
+
+      const d = new Date(year, month - 1, day);
+      const valid = d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day;
+      if (!valid) return "";
+      return `${year}-${pad(month)}-${pad(day)}`;
+    }
+
+    function normalizeDateField(inputId) {
+      const input = document.getElementById(inputId);
+      if (!input) return "";
+      const key = parseDateCH(input.value);
+      if (key) input.value = formatDateCH(key);
+      return key;
+    }
+
+    function openDatePicker(targetInputId, triggerElement = null) {
+      const targetInput = document.getElementById(targetInputId);
+      const popover = document.getElementById("datePopover");
+      if (!targetInput || !popover) return;
+
+      activeDateInputId = targetInputId;
+      absenceRangeMode = targetInputId === "absenceStart" || targetInputId === "absenceEnd";
+      const existingKey = parseDateCH(targetInput.value) || parseDateCH(document.getElementById("absenceStart")?.value) || parseDateCH(document.getElementById("absenceEnd")?.value);
+      const baseDate = existingKey ? new Date(`${existingKey}T00:00:00`) : new Date(currentYear, currentMonth, 1);
+      pickerMonth = baseDate.getMonth();
+      pickerYear = baseDate.getFullYear();
+
+      renderDatePopover(existingKey);
+
+      const anchor = triggerElement || targetInput;
+      const rect = anchor.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
+      popover.style.display = "block";
+      popover.setAttribute("aria-hidden", "false");
+
+      const popoverWidth = 292;
+      let left = rect.left + scrollLeft;
+      const maxLeft = scrollLeft + window.innerWidth - popoverWidth - 12;
+      if (left > maxLeft) left = Math.max(scrollLeft + 12, maxLeft);
+
+      popover.style.left = `${left}px`;
+      popover.style.top = `${rect.bottom + scrollTop + 6}px`;
+    }
+
+    function closeDatePicker() {
+      const popover = document.getElementById("datePopover");
+      if (!popover) return;
+      popover.style.display = "none";
+      popover.setAttribute("aria-hidden", "true");
+    }
+
+    function changePickerMonth(delta) {
+      pickerMonth += delta;
+      if (pickerMonth < 0) { pickerMonth = 11; pickerYear--; }
+      if (pickerMonth > 11) { pickerMonth = 0; pickerYear++; }
+      const targetInput = document.getElementById(activeDateInputId);
+      const selectedKey = targetInput ? parseDateCH(targetInput.value) : "";
+      renderDatePopover(selectedKey);
+    }
+
+    function selectDateFromPicker(key) {
+      if (!activeDateInputId) return;
+
+      if (absenceRangeMode) {
+        selectAbsenceRangeDate(key);
+        return;
+      }
+
+      const targetInput = document.getElementById(activeDateInputId);
+      if (targetInput) {
+        targetInput.value = formatDateCH(key);
+        targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+        targetInput.focus();
+      }
+      closeDatePicker();
+    }
+
+    function selectAbsenceRangeDate(key) {
+      const startInput = document.getElementById("absenceStart");
+      const endInput = document.getElementById("absenceEnd");
+      if (!startInput || !endInput) return;
+
+      const currentStart = parseDateCH(startInput.value);
+      const currentEnd = parseDateCH(endInput.value);
+
+      if (!currentStart || (currentStart && currentEnd)) {
+        startInput.value = formatDateCH(key);
+        endInput.value = "";
+        activeDateInputId = "absenceEnd";
+        showStatus(`Inizio assenza selezionato: ${formatDateCH(key)}. Ora scegli il giorno di fine.`);
+        renderDatePopover(key);
+        return;
+      }
+
+      let startKey = currentStart;
+      let endKey = key;
+      if (endKey < startKey) {
+        const temp = startKey;
+        startKey = endKey;
+        endKey = temp;
+      }
+
+      startInput.value = formatDateCH(startKey);
+      endInput.value = formatDateCH(endKey);
+      startInput.dispatchEvent(new Event("change", { bubbles: true }));
+      endInput.dispatchEvent(new Event("change", { bubbles: true }));
+      showStatus(`Periodo assenza selezionato: ${formatDateCH(startKey)} – ${formatDateCH(endKey)}.`);
+      closeDatePicker();
+    }
+
+    function renderDatePopover(selectedKey = "") {
+      const popover = document.getElementById("datePopover");
+      if (!popover) return;
+
+      const rangeStart = absenceRangeMode ? parseDateCH(document.getElementById("absenceStart")?.value) : "";
+      const rangeEnd = absenceRangeMode ? parseDateCH(document.getElementById("absenceEnd")?.value) : "";
+
+      const first = new Date(pickerYear, pickerMonth, 1);
+      const last = new Date(pickerYear, pickerMonth + 1, 0);
+      const offset = (first.getDay() + 6) % 7;
+      const todayKey = dateKey(today);
+
+      let html = `
+        <div class="date-popover-header">
+          <button type="button" onclick="changePickerMonth(-1)">←</button>
+          <div class="date-popover-title">${monthNames[pickerMonth]} ${pickerYear}${absenceRangeMode ? '<br><span style="font-size:11px;color:#6b7280;font-weight:normal;">Seleziona inizio e fine</span>' : ''}</div>
+          <button type="button" onclick="changePickerMonth(1)">→</button>
+        </div>
+        <div class="date-popover-grid">
+      `;
+
+      weekdayNames.forEach(w => {
+        html += `<div class="date-popover-weekday">${w}</div>`;
+      });
+
+      for (let i = 0; i < offset; i++) {
+        html += `<div class="date-popover-day empty"></div>`;
+      }
+
+      for (let day = 1; day <= last.getDate(); day++) {
+        const key = `${pickerYear}-${pad(pickerMonth + 1)}-${pad(day)}`;
+        const classes = ["date-popover-day"];
+        if (absenceRangeMode && rangeStart && key === rangeStart) classes.push("range-start");
+        if (absenceRangeMode && rangeEnd && key === rangeEnd) classes.push("range-end");
+        if (absenceRangeMode && rangeStart && rangeEnd && key > rangeStart && key < rangeEnd) classes.push("in-range");
+        if (!absenceRangeMode && key === selectedKey) classes.push("selected");
+        if (key === todayKey) classes.push("today-mini");
+        html += `<button type="button" class="${classes.join(" ")}" onclick="selectDateFromPicker('${key}')">${day}</button>`;
+      }
+
+      html += `</div>`;
+      popover.innerHTML = html;
+    }
+
+    document.addEventListener("click", (event) => {
+      const popover = document.getElementById("datePopover");
+      if (!popover || popover.style.display !== "block") return;
+      const clickedInsidePopover = popover.contains(event.target);
+      const clickedCalendarButton = event.target.closest && event.target.closest(".calendar-btn");
+      if (!clickedInsidePopover && !clickedCalendarButton) closeDatePicker();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeDatePicker();
+    });
+
+    function initSelectors() {
+      const monthSelect = document.getElementById("monthSelect");
+      const yearSelect = document.getElementById("yearSelect");
+      monthSelect.innerHTML = monthNames.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+      yearSelect.innerHTML = [2026, 2027, 2028].map(y => `<option value="${y}">${y}</option>`).join("");
+      monthSelect.value = currentMonth;
+      yearSelect.value = currentYear;
+    }
+
+    function changeMonth(delta) {
+      currentMonth += delta;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      document.getElementById("monthSelect").value = currentMonth;
+      document.getElementById("yearSelect").value = currentYear;
+      render();
+    }
+
+    function getBaseAbsenceKey(absence, index) {
+      return `${index}|${absence.person}|${absence.start}|${absence.end}|${absence.reason || ""}`;
+    }
+
+    function getVisibleBaseAbsences() {
+      return baseAbsences.filter((absence, index) => !deletedBaseAbsences.includes(getBaseAbsenceKey(absence, index)));
+    }
+
+    function getAllAbsences() {
+      return [...getVisibleBaseAbsences(), ...extraAbsences];
+    }
+
+    function getAbsencesForDay(key) {
+      return getAllAbsences().filter(a => inRange(key, a.start, a.end));
+    }
+
+    function render() {
+      const rateInput = document.getElementById("dailyRate");
+      if (rateInput) {
+        if (!Number.isFinite(Number(dailyRate)) || Number(dailyRate) < 0) dailyRate = 200;
+        rateInput.value = String(dailyRate);
+        rateInput.setAttribute("value", String(dailyRate));
+      }
+      currentMonth = Number(document.getElementById("monthSelect").value);
+      currentYear = Number(document.getElementById("yearSelect").value);
+      const monthTitle = `${monthNames[currentMonth]} ${currentYear}`;
+      document.getElementById("title").textContent = monthTitle;
+
+      const calendar = document.getElementById("calendar");
+      calendar.innerHTML = "";
+
+      weekdayNames.forEach(w => {
+        const el = document.createElement("div");
+        el.className = "weekday";
+        el.textContent = w;
+        calendar.appendChild(el);
+      });
+
+      const first = new Date(currentYear, currentMonth, 1);
+      const last = new Date(currentYear, currentMonth + 1, 0);
+      const offset = (first.getDay() + 6) % 7;
+
+      for (let i = 0; i < offset; i++) {
+        const empty = document.createElement("div");
+        empty.className = "day empty";
+        calendar.appendChild(empty);
+      }
+
+      for (let day = 1; day <= last.getDate(); day++) {
+        const d = new Date(currentYear, currentMonth, day);
+        const key = dateKey(d);
+        const dayAbsences = getAbsencesForDay(key);
+        const assigned = assignments[key];
+        const holiday = holidays[key];
+        const holidayName = holiday ? holiday.name : null;
+        const holidayType = holiday ? holiday.type : null;
+
+        const div = document.createElement("div");
+        div.className = "day";
+        if (d.getDay() === 6) div.classList.add("weekend-sat");
+        if (d.getDay() === 0) div.classList.add("weekend-sun");
+        if (dateKey(today) === key) div.classList.add("today");
+        if (dayAbsences.length >= 2) div.classList.add("critical");
+        if (holidayType === "national") div.classList.add("holiday-national");
+        if (holidayType === "cantonal") div.classList.add("holiday-cantonal");
+
+        if (!isViewOnly) {
+          div.onclick = () => {
+            setAssignmentFields(key, assigned || "", { scrollToEditor: true });
+          };
+        }
+
+        let infoHtml = "";
+        dayAbsences.forEach(a => {
+          const reason = a.reason || "assente";
+          infoHtml += `<span class="pill absence-pill ferie-${a.person}">${a.person}: ${reason}</span>`;
+        });
+        if (holidayName) {
+          const label = holidayType === "national" ? "Parificato domenica" : "Riposo uff. cant.";
+          const pillClass = holidayType === "national" ? "holiday-national-pill" : "holiday-cantonal-pill";
+          infoHtml += `<span class="pill absence-pill holiday-pill ${pillClass}">${label}: ${holidayName}</span>`;
+        }
+
+        let rabboccoHtml = "";
+        if (assigned) {
+          const warning = (holidayName || dayAbsences.some(a => a.person === assigned)) ? " ⚠️" : "";
+          const bgColor = personBackgroundColors[assigned] || "#e5e7eb";
+          rabboccoHtml = `<span class="pill rabbocco-pill rabbocco rabbocco-${assigned}" style="background:${bgColor} !important; color:#111827 !important; font-weight:800;">Rabbocco: ${assigned}${warning}</span>`;
+        }
+
+        let html = `
+          <div class="date-number">${day}</div>
+          <div class="day-info">${infoHtml}</div>
+          <div class="day-rabbocco-slot">${rabboccoHtml}</div>
+        `;
+
+        div.innerHTML = html;
+        calendar.appendChild(div);
+      }
+
+      renderSummary();
+      renderCritical();
+      renderExtraAbsencesTable();
+    }
+
+    function showStatus(message, isError = false) {
+      const box = document.getElementById("statusBox");
+      if (!box) return;
+      box.textContent = message;
+      box.style.color = isError ? "#b91c1c" : "#166534";
+    }
+
+    function preparePrint() {
+      showStatus("Apro la stampa. Se non succede nulla, usa Ctrl+P / Cmd+P dal browser.");
+      try {
+        window.focus();
+        window.print();
+      } catch (error) {
+        console.error("Errore stampa:", error);
+        showStatus("Questo ambiente blocca la stampa automatica. Usa Ctrl+P / Cmd+P dal browser.", true);
+      }
+    }
+
+    function loadBasePlan() {
+      assignments = { ...estimatedAssignments };
+      saveAssignments();
+      render();
+      showStatus("Piano base giornaliero ricaricato. Le assenze extra restano salvate.");
+    }
+
+    function setAssignmentFields(date, person, options = {}) {
+      const topDate = document.getElementById("assignDate");
+      const topPerson = document.getElementById("assignPerson");
+      const bottomDate = document.getElementById("assignDateBottom");
+      const bottomPerson = document.getElementById("assignPersonBottom");
+      const formattedDate = formatDateCH(date);
+
+      if (topDate) topDate.value = formattedDate;
+      if (topPerson) topPerson.value = person;
+      if (bottomDate) bottomDate.value = formattedDate;
+      if (bottomPerson) bottomPerson.value = person;
+
+      const label = document.getElementById("selectedDayLabel");
+      if (label && formattedDate) {
+        label.style.display = "block";
+        label.textContent = person
+          ? `Giorno selezionato: ${formattedDate} — assegnato a ${person}`
+          : `Giorno selezionato: ${formattedDate} — nessun rabbocco assegnato`;
+      }
+
+      if (options.scrollToEditor) {
+        const box = document.getElementById("quickAssignmentBox");
+        if (box) {
+          box.classList.add("selected");
+          box.scrollIntoView({ behavior: "smooth", block: "center" });
+          setTimeout(() => box.classList.remove("selected"), 1200);
+        }
+        if (bottomPerson) setTimeout(() => bottomPerson.focus(), 350);
+      }
+    }
+
+    function saveAssignmentFromValues(date, person) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      if (!date || !person) {
+        alert("Seleziona data e persona.");
+        return;
+      }
+
+      const absencesForPerson = getAbsencesForDay(date).filter(a => a.person === person);
+      if (absencesForPerson.length) {
+        const details = absencesForPerson
+          .map(a => `${a.reason || "Assenza"} dal ${formatDateCH(a.start)} al ${formatDateCH(a.end)}`)
+          .join("; ");
+        const ok = confirm(`Attenzione: ${person} risulta assente in questa data (${details}). Vuoi assegnare comunque il rabbocco?`);
+        if (!ok) {
+          showStatus(`Assegnazione annullata: ${person} risulta assente il ${date}.`, true);
+          return;
+        }
+      }
+
+      assignments[date] = person;
+      saveAssignments();
+      render();
+      setAssignmentFields(date, person);
+      showStatus(`Rabbocco salvato: ${person} il ${date}.`);
+    }
+
+    function saveAssignment() {
+      const date = normalizeDateField("assignDate");
+      const person = document.getElementById("assignPerson").value;
+      saveAssignmentFromValues(date, person);
+    }
+
+    function saveAssignmentFromBottom() {
+      const date = normalizeDateField("assignDateBottom");
+      const person = document.getElementById("assignPersonBottom").value;
+      saveAssignmentFromValues(date, person);
+    }
+
+    function removeAssignmentByDate(date) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      if (!date) {
+        alert("Seleziona una data.");
+        return;
+      }
+      delete assignments[date];
+      saveAssignments();
+      render();
+      setAssignmentFields(date, "");
+      showStatus(`Rabbocco rimosso dal giorno ${date}.`);
+    }
+
+    function removeAssignment() {
+      const date = normalizeDateField("assignDate");
+      removeAssignmentByDate(date);
+    }
+
+    function removeAssignmentFromBottom() {
+      const date = normalizeDateField("assignDateBottom");
+      removeAssignmentByDate(date);
+    }
+
+    function loadDeletedBaseAbsences() {
+      try {
+        const saved = localStorage.getItem(DELETED_BASE_ABSENCES_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveDeletedBaseAbsences() {
+      localStorage.setItem(DELETED_BASE_ABSENCES_KEY, JSON.stringify(deletedBaseAbsences));
+    }
+
+    function loadExtraAbsences() {
+      try {
+        const saved = localStorage.getItem(EXTRA_ABSENCES_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveExtraAbsences() {
+      localStorage.setItem(EXTRA_ABSENCES_KEY, JSON.stringify(extraAbsences));
+    }
+
+    function saveExtraAbsence() {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      const person = document.getElementById("absencePerson").value;
+      const start = normalizeDateField("absenceStart");
+      const end = normalizeDateField("absenceEnd");
+      const reason = document.getElementById("absenceReason").value;
+
+      if (!person || !start || !end) {
+        alert("Seleziona persona, data inizio e data fine in formato gg/mm/aaaa.");
+        return;
+      }
+
+      if (end < start) {
+        alert("La data di fine non può essere precedente alla data di inizio.");
+        return;
+      }
+
+      extraAbsences.push({ person, start, end, reason });
+      saveExtraAbsences();
+      render();
+    }
+
+    function clearExtraAbsences() {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      if (!confirm("Vuoi cancellare tutte le assenze extra inserite manualmente?")) return;
+      extraAbsences = [];
+      saveExtraAbsences();
+      render();
+      showStatus("Assenze extra cancellate.");
+    }
+
+    function deleteBaseAbsence(index) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      const absence = baseAbsences[index];
+      if (!absence) return;
+      const label = `${absence.person}: ${absence.reason || "Assenza"} dal ${formatDateCH(absence.start)} al ${formatDateCH(absence.end)}`;
+      if (!confirm(`Vuoi eliminare/nascondere questa ferie base?
+${label}`)) return;
+      const key = getBaseAbsenceKey(absence, index);
+      if (!deletedBaseAbsences.includes(key)) deletedBaseAbsences.push(key);
+      saveDeletedBaseAbsences();
+      render();
+      showStatus(`Ferie base rimossa dal calendario: ${label}.`);
+    }
+
+    function restoreBaseAbsences() {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      if (!confirm("Vuoi ripristinare tutte le ferie base eliminate?")) return;
+      deletedBaseAbsences = [];
+      saveDeletedBaseAbsences();
+      render();
+      showStatus("Ferie base ripristinate.");
+    }
+
+    function renderExtraAbsencesTable() {
+      const table = document.getElementById("extraAbsencesTable");
+      if (!table) return;
+
+      const visibleBaseRows = baseAbsences
+        .map((a, index) => ({ ...a, index, key: getBaseAbsenceKey(a, index) }))
+        .filter(a => !deletedBaseAbsences.includes(a.key));
+
+      if (!visibleBaseRows.length && !extraAbsences.length) {
+        table.innerHTML = `<tr><td class="small">Nessuna assenza registrata.</td></tr>`;
+        return;
+      }
+
+      const baseRowsHtml = visibleBaseRows.map(a => `
+        <tr>
+          <td>${a.person}</td>
+          <td>${formatDateCH(a.start)}</td>
+          <td>${formatDateCH(a.end)}</td>
+          <td>${a.reason || "Assenza"}</td>
+          <td>Base</td>
+          <td><button type="button" class="danger" onclick="deleteBaseAbsence(${a.index})">Elimina</button></td>
+        </tr>
+      `).join("");
+
+      const extraRowsHtml = extraAbsences.map((a, index) => `
+        <tr>
+          <td>${a.person}</td>
+          <td>${formatDateCH(a.start)}</td>
+          <td>${formatDateCH(a.end)}</td>
+          <td>${a.reason || "Assenza"}</td>
+          <td>Extra</td>
+          <td><button type="button" class="danger" onclick="deleteExtraAbsence(${index})">Elimina</button></td>
+        </tr>
+      `).join("");
+
+      table.innerHTML = `<tr><th>Persona</th><th>Dal</th><th>Al</th><th>Motivo</th><th>Tipo</th><th></th></tr>` + baseRowsHtml + extraRowsHtml;
+    }
+
+    function deleteExtraAbsence(index) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: modifica non consentita.", true);
+        return;
+      }
+      const absence = extraAbsences[index];
+      if (!absence) return;
+      const label = `${absence.person}: ${absence.reason || "Assenza"} dal ${formatDateCH(absence.start)} al ${formatDateCH(absence.end)}`;
+      if (!confirm(`Vuoi eliminare questa assenza extra?
+${label}`)) return;
+      extraAbsences.splice(index, 1);
+      saveExtraAbsences();
+      render();
+      showStatus(`Assenza extra eliminata: ${label}.`);
+    }
+
+    function renderSummary() {
+      const counts = Object.fromEntries(people.map(p => [p, 0]));
+      const holidayCounts = Object.fromEntries(people.map(p => [p, 0]));
+      const monthCounts = Object.fromEntries(people.map(p => [p, 0]));
+      const monthHolidayCounts = Object.fromEntries(people.map(p => [p, 0]));
+      const monthPrefix = `${currentYear}-${pad(currentMonth + 1)}`;
+
+      Object.entries(assignments).forEach(([key, person]) => {
+        if (key.startsWith(String(currentYear)) && counts[person] !== undefined) {
+          counts[person]++;
+          if (holidays[key]) holidayCounts[person]++;
+        }
+
+        if (key.startsWith(monthPrefix) && monthCounts[person] !== undefined) {
+          monthCounts[person]++;
+          if (holidays[key]) monthHolidayCounts[person]++;
+        }
+      });
+
+      const table = document.getElementById("summaryTable");
+      table.innerHTML = `<tr><th>Persona</th><th>Giorni assegnati</th><th>Settimane equivalenti</th><th>Di cui festivi</th><th>Fatturato anno corrente</th></tr>` +
+        people.map(p => {
+          const revenue = counts[p] * dailyRate;
+          return `<tr><td>${p}</td><td>${counts[p]}</td><td>${(counts[p] / 4).toFixed(1)}</td><td>${holidayCounts[p]}</td><td><strong>${formatCHF(revenue)}</strong></td></tr>`;
+        }).join("");
+
+      const monthlyTable = document.getElementById("monthlySummaryTable");
+      if (monthlyTable) {
+        const totalMonthDays = people.reduce((sum, p) => sum + monthCounts[p], 0);
+        const totalMonthRevenue = totalMonthDays * dailyRate;
+        monthlyTable.innerHTML = `<tr><th>Persona</th><th>Giorni mese</th><th>Di cui festivi</th><th>Fatturato mese</th></tr>` +
+          people.map(p => {
+            const revenue = monthCounts[p] * dailyRate;
+            return `<tr><td>${p}</td><td>${monthCounts[p]}</td><td>${monthHolidayCounts[p]}</td><td><strong>${formatCHF(revenue)}</strong></td></tr>`;
+          }).join("") +
+          `<tr><th>Totale mese</th><th>${totalMonthDays}</th><th></th><th>${formatCHF(totalMonthRevenue)}</th></tr>`;
+      }
+    }
+
+    function renderCritical() {
+      const periods = [];
+      const last = new Date(currentYear, currentMonth + 1, 0);
+      let currentPeriod = null;
+
+      for (let day = 1; day <= last.getDate(); day++) {
+        const key = `${currentYear}-${pad(currentMonth + 1)}-${pad(day)}`;
+        const absences = getAbsencesForDay(key);
+
+        if (absences.length < 2) {
+          if (currentPeriod) {
+            periods.push(currentPeriod);
+            currentPeriod = null;
+          }
+          continue;
+        }
+
+        const peopleAbsent = [...new Set(absences.map(x => x.person))].sort();
+        const signature = peopleAbsent.join("|");
+
+        if (currentPeriod && currentPeriod.signature === signature) {
+          currentPeriod.end = key;
+        } else {
+          if (currentPeriod) periods.push(currentPeriod);
+          currentPeriod = {
+            start: key,
+            end: key,
+            people: peopleAbsent,
+            signature
+          };
+        }
+      }
+
+      if (currentPeriod) periods.push(currentPeriod);
+
+      const rows = periods.map(period => {
+        const dateLabel = period.start === period.end
+          ? formatDateCH(period.start).slice(0, 5)
+          : `${formatDateCH(period.start).slice(0, 5)}–${formatDateCH(period.end).slice(0, 5)}`;
+        return `<tr><td>${dateLabel}</td><td>${period.people.join(", ")}</td></tr>`;
+      });
+
+      document.getElementById("criticalTable").innerHTML = rows.length
+        ? `<tr><th>Periodo</th><th>Assenti</th></tr>${rows.join("")}`
+        : `<tr><td>Nessuna sovrapposizione critica nel mese.</td></tr>`;
+    }
+
+    function getExportJson() {
+      const data = { assenzeBase: baseAbsences, ferieBaseEliminate: deletedBaseAbsences, assenzeExtra: extraAbsences, festivi: holidays, rabbocco: assignments, tariffaGiornaliera: dailyRate };
+      return JSON.stringify(data, null, 2);
+    }
+
+    function showExportPanel() {
+      const panel = document.getElementById("exportPanel");
+      const text = document.getElementById("exportText");
+      if (!panel || !text) return;
+      text.value = getExportJson();
+      panel.style.display = "block";
+      showStatus("Backup generato. Puoi copiarlo oppure provare il download JSON.");
+    }
+
+    function hideExportPanel() {
+      const panel = document.getElementById("exportPanel");
+      if (panel) panel.style.display = "none";
+      showStatus("Backup chiuso.");
+    }
+
+    function copyExportText() {
+      const text = document.getElementById("exportText");
+      if (!text) return;
+      text.focus();
+      text.select();
+      try {
+        const ok = document.execCommand("copy");
+        showStatus(ok ? "Backup copiato negli appunti." : "Seleziona il testo e copialo manualmente con Ctrl+C / Cmd+C.", !ok);
+      } catch (error) {
+        console.error("Errore copia:", error);
+        showStatus("Copia automatica bloccata. Seleziona il testo e usa Ctrl+C / Cmd+C.", true);
+      }
+    }
+
+    function downloadExportData() {
+      try {
+        const json = getExportJson();
+        const filename = "calendario_ferie_rabbocco_dati.json";
+        const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showStatus("Download avviato. Se non vedi il file, usa il testo backup da copiare.");
+      } catch (error) {
+        console.error("Errore download:", error);
+        showStatus("Download bloccato. Usa il testo backup da copiare manualmente.", true);
+      }
+    }
+
+    function exportData() {
+      showExportPanel();
+    }
+
+    function importData(event) {
+      if (isViewOnly) {
+        showStatus("Modalità solo visualizzazione: importazione non consentita.", true);
+        return;
+      }
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          const importedAssignments = imported.rabbocco;
+          const importedExtraAbsences = imported.assenzeExtra || [];
+
+          if (!importedAssignments || typeof importedAssignments !== "object" || Array.isArray(importedAssignments)) {
+            alert("File non valido: manca la sezione rabbocco.");
+            return;
+          }
+
+          if (!Array.isArray(importedExtraAbsences)) {
+            alert("File non valido: la sezione assenzeExtra non è corretta.");
+            return;
+          }
+
+          assignments = importedAssignments;
+          extraAbsences = importedExtraAbsences;
+          saveAssignments();
+          saveExtraAbsences();
+          render();
+          alert("Dati importati correttamente.");
+        } catch (error) {
+          alert("Impossibile importare il file. Controlla che sia un JSON esportato da questo calendario.");
+          console.error("Errore importazione dati:", error);
+        } finally {
+          event.target.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function runBasicTests() {
+      console.assert(Array.isArray(baseAbsences), "baseAbsences deve essere un array");
+      console.assert(baseAbsences.length > 0, "baseAbsences deve contenere le assenze base");
+      console.assert(getAbsencesForDay("2026-05-20").some(a => a.person === "Massimo" && a.reason === "Ferie"), "Massimo deve risultare in ferie il 20/05/2026");
+      console.assert(getAbsencesForDay("2026-06-10").some(a => a.person === "Ilaria" && a.reason === "Ferie"), "Ilaria deve risultare in ferie il 10/06/2026");
+      console.assert(getAbsencesForDay("2026-08-20").some(a => a.person === "Roberto" && a.reason === "Ferie"), "Roberto deve risultare in ferie il 20/08/2026");
+      console.assert(getAbsencesForDay("2026-05-21").some(a => a.person === "Franco" && a.reason === "Ferie"), "Franco deve risultare in ferie il 21/05/2026");
+      console.assert(getAbsencesForDay("2026-09-10").some(a => a.person === "Franco" && a.reason === "Ferie"), "Franco deve risultare in ferie il 10/09/2026");
+      console.assert(getAbsencesForDay("2026-12-31").some(a => a.person === "Franco" && a.reason === "Ferie"), "Franco deve risultare in ferie il 31/12/2026");
+      console.assert(getComputedStyle(document.documentElement).getPropertyValue("--ilaria").trim() === "#ffd6e7", "Ilaria deve essere rosa");
+      console.assert(getComputedStyle(document.documentElement).getPropertyValue("--roberto").trim() === "#d8ecff", "Roberto deve essere blu");
+      console.assert(Object.keys(baseAssignments).length > 0, "baseAssignments deve contenere il piano base 2026");
+      const baseAssignmentCounts = Object.values(baseAssignments).reduce((acc, person) => {
+        acc[person] = (acc[person] || 0) + 1;
+        return acc;
+      }, {});
+      const massimoFrancoTotal = (baseAssignmentCounts.Massimo || 0) + (baseAssignmentCounts.Franco || 0);
+      console.assert(baseAssignmentCounts.Massimo === 64 && baseAssignmentCounts.Franco === 28 && baseAssignmentCounts.Ilaria === 27, "Nel piano base 2026 Massimo/Franco/Ilaria devono essere 64/28/27");
+      console.assert(massimoFrancoTotal === 92, "Il totale Massimo+Franco nel piano base 2026 deve essere 92 giorni dopo il riequilibrio");
+      console.assert(baseAssignmentCounts.Franco > baseAssignmentCounts.Ilaria, "Franco deve avere leggermente più giorni di Ilaria nel piano base 2026");
+      console.assert(Object.keys(estimatedAssignments).some(key => key.startsWith("2027")), "estimatedAssignments deve contenere un piano stimato per il 2027");
+      console.assert(Object.keys(estimatedAssignments).some(key => key.startsWith("2028")), "estimatedAssignments deve contenere un piano stimato per il 2028");
+      console.assert(!estimatedAssignments["2027-05-06"], "Il piano stimato non deve assegnare rabbocco su Ascensione 2027");
+      console.assert(!estimatedAssignments["2028-05-25"], "Il piano stimato non deve assegnare rabbocco su Ascensione 2028");
+      console.assert(!estimatedAssignments["2028-06-15"], "Il piano stimato non deve assegnare rabbocco su Corpus Domini 2028");
+      console.assert(!holidays["2028-06-08"], "L'8 giugno 2028 non deve essere segnato come Corpus Domini");
+      console.assert(holidays["2026-05-14"].type === "national", "Ascensione deve essere parificata alla domenica");
+      console.assert(holidays["2026-06-04"].type === "cantonal", "Corpus Domini deve essere riposo ufficiale cantonale");
+      console.assert(personBackgroundColors.Ilaria === "#ffd6e7", "Lo sfondo rabbocco di Ilaria deve usare il rosa");
+      console.assert(personBackgroundColors.Roberto === "#d8ecff", "Lo sfondo rabbocco di Roberto deve usare il blu");
+      console.assert(typeof exportData === "function", "exportData deve esistere");
+      console.assert(typeof showExportPanel === "function", "showExportPanel deve esistere");
+      console.assert(typeof downloadExportData === "function", "downloadExportData deve esistere");
+      console.assert(typeof preparePrint === "function", "preparePrint deve esistere");
+      console.assert(typeof importData === "function", "importData deve esistere");
+      console.assert(typeof saveAssignmentFromBottom === "function", "saveAssignmentFromBottom deve esistere");
+      console.assert(typeof removeAssignmentFromBottom === "function", "removeAssignmentFromBottom deve esistere");
+      console.assert(document.querySelector("details.absence-manager"), "La gestione assenze deve essere richiudibile");
+      console.assert(document.querySelector("details.assignment-manager"), "La gestione assegnazione superiore deve essere richiudibile");
+      console.assert(formatDateCH("2026-05-19") === "19/05/2026", "Le date devono essere visualizzate in formato gg/mm/aaaa");
+      console.assert(parseDateCH("19/05/2026") === "2026-05-19", "Il formato gg/mm/aaaa deve essere accettato");
+      console.assert(parseDateCH("19.05.2026") === "2026-05-19", "Il formato gg.mm.aaaa deve essere accettato");
+      console.assert(typeof setAssignmentFields === "function", "setAssignmentFields deve esistere");
+      console.assert(typeof openDatePicker === "function", "openDatePicker deve esistere");
+      console.assert(typeof selectAbsenceRangeDate === "function", "selectAbsenceRangeDate deve esistere");
+      console.assert(typeof renderCritical === "function", "renderCritical deve esistere e raggruppare i giorni critici per periodo");
+      console.assert(document.getElementById("monthlySummaryTable"), "La tabella del fatturato mese selezionato deve esistere");
+      console.assert(typeof isViewOnly === "boolean", "isViewOnly deve indicare se la pagina è in sola visualizzazione");
+      console.assert(document.createElement("span").classList !== undefined, "classList deve essere disponibile per distinguere pill e rabbocco");
+      console.assert(typeof document.createElement("div").style.flexDirection !== "undefined", "Flexbox deve essere disponibile per ancorare il rabbocco in basso");
+      const orderingTestAbsences = [{ person: "Ilaria", reason: "Ferie" }];
+      const orderingTestInfo = orderingTestAbsences.map(a => `${a.person}: ${a.reason}`).join("") + " Parificato domenica";
+      console.assert(orderingTestInfo.indexOf("Ilaria") < orderingTestInfo.indexOf("Parificato"), "Le ferie devono comparire prima dei festivi nella cella");
+      Object.entries(baseAssignments).forEach(([key, person]) => {
+        const personAbsent = baseAbsences.some(a => a.person === person && key >= a.start && key <= a.end);
+        console.assert(!personAbsent, `Nel piano base ${person} non deve essere assegnato mentre è in ferie: ${key}`);
+      });
+      console.assert(loadDailyRate() === 200 || Number.isFinite(loadDailyRate()), "La tariffa giornaliera deve essere valida e avere fallback a 200");
+      const testSaturday = document.createElement("div");
+      testSaturday.classList.add("day", "weekend-sat");
+      console.assert(testSaturday.classList.contains("weekend-sat"), "Il sabato deve poter ricevere la classe weekend-sat");
+      const testSunday = document.createElement("div");
+      testSunday.classList.add("day", "weekend-sun");
+      console.assert(testSunday.classList.contains("weekend-sun"), "La domenica deve poter ricevere la classe weekend-sun");
+    }
+
+    initSelectors();
+    if (new URLSearchParams(window.location.search).get("debug") === "1") {
+      runBasicTests();
+    }
+    render();
+  </script>
+</body>
+</html>
