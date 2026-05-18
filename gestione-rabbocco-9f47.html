@@ -444,6 +444,34 @@
       display: block;
     }
 
+    body.print-rabbocco-only .absence-pill:not(.holiday-pill) {
+      display: none !important;
+    }
+
+    body.print-rabbocco-only .day.critical {
+      background: var(--card);
+    }
+
+    body.print-rabbocco-only .day.holiday-national {
+      background: var(--holiday-national);
+    }
+
+    body.print-rabbocco-only .day.holiday-cantonal {
+      background: var(--holiday-cantonal);
+    }
+
+    body.print-rabbocco-only .rabbocco-pill {
+      display: block !important;
+    }
+
+    body.print-rabbocco-only .legend .tag:nth-child(1),
+    body.print-rabbocco-only .legend .tag:nth-child(2),
+    body.print-rabbocco-only .legend .tag:nth-child(3),
+    body.print-rabbocco-only .legend .tag:nth-child(4),
+    body.print-rabbocco-only .legend .tag:nth-child(6) {
+      display: none !important;
+    }
+
     .viewer-notice {
       display: none;
       margin-top: 12px;
@@ -704,6 +732,7 @@
         <select id="yearSelect" onchange="render()"></select>
         <button type="button" onclick="changeMonth(1)">Mese successivo →</button>
         <button type="button" class="secondary" onclick="preparePrint()">Stampa / salva PDF</button>
+        <button type="button" class="secondary" onclick="preparePrintRabboccoOnly()">PDF solo rabbocco</button>
         <button type="button" class="secondary edit-only" onclick="showExportPanel()">Esporta dati</button>
         <button type="button" class="secondary edit-only" onclick="document.getElementById('importFile').click()">Importa dati</button>
         <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)" />
@@ -2031,6 +2060,7 @@
     }
 
     function preparePrint() {
+      document.body.classList.remove("print-rabbocco-only");
       showStatus("Apro la stampa. Se non succede nulla, usa Ctrl+P / Cmd+P dal browser.");
       try {
         window.focus();
@@ -2038,6 +2068,28 @@
       } catch (error) {
         console.error("Errore stampa:", error);
         showStatus("Questo ambiente blocca la stampa automatica. Usa Ctrl+P / Cmd+P dal browser.", true);
+      }
+    }
+
+    function preparePrintRabboccoOnly() {
+      document.body.classList.add("print-rabbocco-only");
+      showStatus("Apro la stampa solo rabbocco. Nel PDF restano visibili festivi e assegnazioni rabbocco.");
+
+      const cleanup = () => {
+        document.body.classList.remove("print-rabbocco-only");
+        window.removeEventListener("afterprint", cleanup);
+      };
+
+      window.addEventListener("afterprint", cleanup);
+
+      try {
+        window.focus();
+        window.print();
+        setTimeout(cleanup, 1500);
+      } catch (error) {
+        console.error("Errore stampa solo rabbocco:", error);
+        cleanup();
+        showStatus("Questo ambiente blocca la stampa automatica. Usa Ctrl+P / Cmd+P dal browser dopo aver riprovato.", true);
       }
     }
 
@@ -2512,6 +2564,7 @@ ${label}`)) return;
       console.assert(typeof showExportPanel === "function", "showExportPanel deve esistere");
       console.assert(typeof downloadExportData === "function", "downloadExportData deve esistere");
       console.assert(typeof preparePrint === "function", "preparePrint deve esistere");
+      console.assert(typeof preparePrintRabboccoOnly === "function", "preparePrintRabboccoOnly deve esistere");
       console.assert(typeof importData === "function", "importData deve esistere");
       console.assert(typeof saveAssignmentFromBottom === "function", "saveAssignmentFromBottom deve esistere");
       console.assert(typeof removeAssignmentFromBottom === "function", "removeAssignmentFromBottom deve esistere");
